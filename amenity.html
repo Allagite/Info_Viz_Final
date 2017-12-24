@@ -105,6 +105,12 @@
         z-index: 20;
     }
 
+    #describe{
+        font-family: 'Alegreya', serif;
+        font-size: 20px;
+
+    }
+
 
 </style>
 <body>
@@ -124,6 +130,7 @@
 </form>
 </div>
 
+<div id="describe"><b>Amount of Different Amenities</b><br>The red color represents the host you have chosen, the other colors represent ten neighbors who earn higher income.</div>
 
 <script>
     //listid passed by search result or click result;
@@ -187,11 +194,11 @@
             }
         }
         neighbor.push(chosen_id);
-        console.log(neighbor);
+        //console.log(neighbor);
         d3.csv("amenity.csv", function(error, cars) {
 
             // Extract the list of dimensions and create a scale for each.
-            console.log(cars[7]);
+            //console.log(cars[7]);
             x.domain(dimensions = d3.keys(cars[7]).filter(function(d) {
                 return d != "group" && d != "id" && d != "income" && (y[d] = d3.scale.linear()
                     .domain(d3.extent(cars, function(p) { return +p[d]; }))
@@ -204,12 +211,12 @@
             cars = cars.filter(function(d){
                 for (var n=0; n < neighbor.length;n++){
                     if (d['id'].toString() == neighbor[n].toString()){
-                        console.log('true')
+                        //console.log('true')
                         return d;
                     }
                 }
             })
-            console.log(cars);
+
             // Add grey background lines for context.
             background = svg.append("g")
                 .attr("class", "background")
