@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+    svg {
+        font: 10px sans-serif;
+        padding: 10px;
+    }
+
+    .axis,
+    .frame {
+        shape-rendering: crispEdges;
+    }
+
+    .axis line {
+        stroke: #ddd;
+    }
+
+    .axis path {
+        display: none;
+    }
+
+    .cell text {
+        font-weight: bold;
+        text-transform: capitalize;
+    }
+
+    .frame {
+        fill: none;
+        stroke: #aaa;
+    }
+
+    circle {
+        fill-opacity: .7;
+    }
+
+    circle.hidden {
+        fill: #ccc !important;
+    }
+
+    .extent {
+        fill: #000;
+        fill-opacity: .125;
+        stroke: #fff;
+    }
+
+
+    /* Form submit button */
+    .form-wrapper button {
+        overflow: visible;
+        position: relative;
+        float: right;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        height: 40px;
+        width: 110px;
+        font: bold 15px/40px 'lucida sans', 'trebuchet MS', 'Tahoma';
+        color: #fff;
+        text-transform: uppercase;
+        background: #d83c3c;
+        border-radius: 0 3px 3px 0;
+        text-shadow: 0 -1px 0 rgba(0, 0 ,0, .3);
+        z-index: 20;
+    }
+    .form-wrapper button:hover{
+        background: #e54040;
+        z-index: 20;
+    }
+    .form-wrapper button:active,
+    .form-wrapper button:focus{
+        background: #c42f2f;
+        outline: 0;
+        z-index: 20;
+    }
+    .form-wrapper button:before { /* left arrow */
+        content: '';
+        position: absolute;
+        border-width: 8px 8px 8px 0;
+        border-style: solid solid solid none;
+        border-color: transparent #d83c3c transparent;
+        top: 12px;
+        left: -6px;
+        z-index: 20;
+    }
+    .form-wrapper button:hover:before{
+        border-right-color: #e54040;
+        z-index: 20;
+    }
+    .form-wrapper button:focus:before,
+    .form-wrapper button:active:before{
+        border-right-color: #c42f2f;
+        z-index: 20;
+    }
+    .form-wrapper button::-moz-focus-inner { /* remove extra button spacing for Mozilla Firefox */
+        border: 0;
+        padding: 0;
+        z-index: 20;
+    }
+
+
+</style>
+<body>
+
+<div id="go_next"><form class="form-wrapper cf">
+    <button type="button" id="nextbtn">Next Visual</button>
+</form>
+</div>
+
+<div id="go_home"><form class="form-wrapper cf">
+    <button type="button" id="homebtn">Go Map</button>
+</form>
+</div>
+
+<div id="go_page"><form class="form-wrapper cf">
+    <button type="button" id="pagebtn">Go Home</button>
+</form>
+</div>
+
+<div id="go_prev"><form class="form-wrapper cf">
+    <button type="button" id="prevbtn">Go Prev</button>
+</form>
+</div>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+    var listId_ = window.location.search;
+    var listId = listId_.slice(8, listId_.length);
+
+    document.getElementById("nextbtn").onclick = function () {
+        window.location.href = "radar chart.html"+'?listId='+listId;
+    };
+
+    document.getElementById("prevbtn").onclick = function () {
+        window.location.href = "amenity.html"+'?listId='+listId;
+    };
+
+    document.getElementById("homebtn").onclick = function () {
+        window.location.href = "mapview.html";
+    };
+
+    document.getElementById("pagebtn").onclick = function () {
+        window.location.href = "home.html";
+    };
+
+    var width = 960,
+        size = 100,
+        padding = 20;
+
+    var x = d3.scale.linear()
+        .range([padding / 2, size - padding / 2]);
+
+    var y = d3.scale.linear()
+        .range([size - padding / 2, padding / 2]);
+
+    var xAxis = d3.svg.axis()
+        .scale(x)
+        .orient("bottom")
+        .ticks(6);
+
+    var yAxis = d3.svg.axis()
+        .scale(y)
+        .orient("left")
+        .ticks(6);
+
+
+    var neighbor = [];
+
+
+    var chosen_id = listId;
+
+
+
+    var color = function(id) {
+        if (id == chosen_id){
+            return '#ff0000';
+        }
+        else {
+            var letters = '0123456789ABCDEF';
+            var color = '#';
+            for (var i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    };
+
+    d3.csv("neighborhood.csv",function(error,n_data){
+        if (error) throw error;
+        for (var i=0; i < n_data.length; i++){
+            if (n_data[i]['id']==chosen_id){
+                neighbor = n_data[i]['neighbor'];
+                //console.log(neighbor)
+                neighbor = neighbor.split(',');
+                for (var i = 0; i < neighbor.length; i++){
+                    neighbor[i] = +neighbor[i].replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '')
+                }
+                break;
+            }
+        }
+        neighbor.push(chosen_id);
+
+
+
+        d3.csv("require.csv", function(error, data) {
+
+            data.forEach(function (d) {
+                d['security_deposit'] = +d['security_deposit'].replace(/[^0-9\.-]+/g, "");
+                d['cleaning_fee'] = +d['cleaning_fee'].replace(/[^0-9\.-]+/g, "");
+                d['guests_included'] = +d['guests_included'].replace(/[^0-9\.-]+/g, "");
+                d['extra_people'] = +d['extra_people'].replace(/[^0-9\.-]+/g, "");
+                d['minimum_nights'] = +d['minimum_nights'].replace(/[^0-9\.-]+/g, "");
+                d['maximum_nights'] = +d['maximum_nights'].replace(/[^0-9\.-]+/g, "");
+            });
+
+            data = data.filter(function (d) {
+                for (var n = 0; n < neighbor.length; n++) {
+                    if (d['id'].toString() == neighbor[n].toString()) {
+                        return d;
+                    }
+                }
+            });
+
+            var domainByTrait = {},
+                traits = d3.keys(data[0]).filter(function (d) {
+                    return d !== "id";
+                }),
+                n = traits.length;
+
+            traits.forEach(function (trait) {
+                domainByTrait[trait] = d3.extent(data, function (d) {
+                    return d[trait];
+                });
+            });
+
+            xAxis.tickSize(size * n);
+            yAxis.tickSize(-size * n);
+
+            var brush = d3.svg.brush()
+                .x(x)
+                .y(y)
+                .on("brushstart", brushstart)
+                .on("brush", brushmove)
+                .on("brushend", brushend);
+
+            var svg = d3.select("body").append("svg")
+                .attr("width", size * n + padding)
+                .attr("height", size * n + padding)
+                .append("g")
+                .attr("transform", "translate(" + padding + "," + padding / 2 + ")");
+
+            svg.selectAll(".x.axis")
+                .data(traits)
+                .enter().append("g")
+                .attr("class", "x axis")
+                .attr("transform", function (d, i) {
+                    return "translate(" + (n - i - 1) * size + ",0)";
+                })
+                .each(function (d) {
+                    x.domain(domainByTrait[d]);
+                    d3.select(this).call(xAxis);
+                });
+
+            svg.selectAll(".y.axis")
+                .data(traits)
+                .enter().append("g")
+                .attr("class", "y axis")
+                .attr("transform", function (d, i) {
+                    return "translate(0," + i * size + ")";
+                })
+                .each(function (d) {
+                    y.domain(domainByTrait[d]);
+                    d3.select(this).call(yAxis);
+                });
+
+            var cell = svg.selectAll(".cell")
+                .data(cross(traits, traits))
+                .enter().append("g")
+                .attr("class", "cell")
+                .attr("transform", function (d) {
+                    return "translate(" + (n - d.i - 1) * size + "," + d.j * size + ")";
+                })
+                .each(plot);
+
+            // Titles for the diagonal.
+            cell.filter(function (d) {
+                return d.i === d.j;
+            }).append("text")
+                .attr("x", padding)
+                .attr("y", padding)
+                .attr("dy", ".71em")
+                .text(function (d) {
+                    return d.x;
+                });
+
+            cell.call(brush);
+
+            function plot(p) {
+                var cell = d3.select(this);
+
+                x.domain(domainByTrait[p.x]);
+                y.domain(domainByTrait[p.y]);
+
+                cell.append("rect")
+                    .attr("class", "frame")
+                    .attr("x", padding / 2)
+                    .attr("y", padding / 2)
+                    .attr("width", size - padding)
+                    .attr("height", size - padding);
+
+                cell.selectAll("circle")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("cx", function (d) {
+                        return x(d[p.x]);
+                    })
+                    .attr("cy", function (d) {
+                        return y(d[p.y]);
+                    })
+                    .attr("r", function (d) {
+                        if (d['id'] == listId)
+                            return 8;
+                        else {
+                            return 4;
+                        }
+                    })
+                    .style("fill", function (d) {
+                        return color(d.id);
+                    });
+            }
+
+            var brushCell;
+
+            // Clear the previously-active brush, if any.
+            function brushstart(p) {
+                if (brushCell !== this) {
+                    d3.select(brushCell).call(brush.clear());
+                    x.domain(domainByTrait[p.x]);
+                    y.domain(domainByTrait[p.y]);
+                    brushCell = this;
+                }
+            }
+
+            // Highlight the selected circles.
+            function brushmove(p) {
+                var e = brush.extent();
+                svg.selectAll("circle").classed("hidden", function (d) {
+                    return e[0][0] > d[p.x] || d[p.x] > e[1][0]
+                        || e[0][1] > d[p.y] || d[p.y] > e[1][1];
+                });
+            }
+
+            // If the brush is empty, select all circles.
+            function brushend() {
+                if (brush.empty()) svg.selectAll(".hidden").classed("hidden", false);
+            }
+
+
+            function cross(a, b) {
+                var c = [], n = a.length, m = b.length, i, j;
+                for (i = -1; ++i < n;) for (j = -1; ++j < m;) c.push({x: a[i], i: i, y: b[j], j: j});
+                return c;
+            }
+
+
+        })
+    })
+
+
+
+
+
+
+
+
+</script>

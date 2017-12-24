@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.1.0/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.1.0/dist/leaflet.js"></script>
+	<script src= "http://code.jquery.com/jquery-1.4.1.min.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <link href="nv.d3.min.css" rel="stylesheet">
+    <script src="nv.d3.min.js"></script>
+    <title>Airbnb</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+        /* Always set the map height explicitly to define the size of the div
+         * element that contains the map. */
+        #map {
+            height: 100%;
+            z-index: 0;
+        }
+
+        /* Optional: Makes the sample page fill the window. */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #legend {
+            font-family: Arial, sans-serif;
+            background: #fff;
+            padding: 10px;
+            margin: 10px;
+            border: 3px solid #000;
+        }
+
+        #legend h3 {
+            margin-top: 0;
+        }
+
+        #legend img {
+            vertical-align: middle;
+        }
+
+
+        .iw-container{
+            font-family: monospace;
+        }
+
+        .cf:before, .cf:after{
+            content:"";
+            display:table;
+        }
+        .cf:after{
+            clear:both;
+            z-index: 20;
+        }
+        .cf{
+            zoom:1;
+        }
+
+
+
+        /* Form wrapper styling */
+        .form-wrapper {
+            width: 450px;
+            padding: 0px;
+            margin: 0px auto 0px auto;
+            background: #444;
+            background: rgba(0,0,0,.2);
+            border-radius: 10px;
+            box-shadow: 0 1px 1px rgba(0,0,0,.4) inset, 0 1px 0 rgba(255,255,255,.2);
+            z-index: 20;
+        }
+        /* Form text input */
+        .form-wrapper input {
+            width: 330px;
+            height: 20px;
+            padding: 10px 5px;
+            float: left;
+            font: bold 15px 'lucida sans', 'trebuchet MS', 'Tahoma';
+            border: 0;
+            background: #eee;
+            border-radius: 3px 0 0 3px;
+            z-index: 20;
+        }
+        .form-wrapper input:focus {
+            outline: 0;
+            background: #fff;
+            box-shadow: 0 0 2px rgba(0,0,0,.8) inset;
+            z-index: 20;
+        }
+        .form-wrapper input::-webkit-input-placeholder {
+            color: #999;
+            font-weight: normal;
+            font-style: italic;
+            z-index: 20;
+        }
+        .form-wrapper input:-moz-placeholder {
+            color: #999;
+            font-weight: normal;
+            font-style: italic;
+            z-index: 20;
+        }
+        .form-wrapper input:-ms-input-placeholder {
+            color: #999;
+            font-weight: normal;
+            font-style: italic;
+            z-index: 20;
+        }
+        /* Form submit button */
+        .form-wrapper button {
+            overflow: visible;
+            position: relative;
+            float: right;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+            height: 40px;
+            width: 110px;
+            font: bold 15px/40px 'lucida sans', 'trebuchet MS', 'Tahoma';
+            color: #fff;
+            text-transform: uppercase;
+            background: #d83c3c;
+            border-radius: 0 3px 3px 0;
+            text-shadow: 0 -1px 0 rgba(0, 0 ,0, .3);
+            z-index: 20;
+        }
+        .form-wrapper button:hover{
+            background: #e54040;
+            z-index: 20;
+        }
+        .form-wrapper button:active,
+        .form-wrapper button:focus{
+            background: #c42f2f;
+            outline: 0;
+            z-index: 20;
+        }
+        .form-wrapper button:before { /* left arrow */
+            content: '';
+            position: absolute;
+            border-width: 8px 8px 8px 0;
+            border-style: solid solid solid none;
+            border-color: transparent #d83c3c transparent;
+            top: 12px;
+            left: -6px;
+            z-index: 20;
+        }
+        .form-wrapper button:hover:before{
+            border-right-color: #e54040;
+            z-index: 20;
+        }
+        .form-wrapper button:focus:before,
+        .form-wrapper button:active:before{
+            border-right-color: #c42f2f;
+            z-index: 20;
+        }
+        .form-wrapper button::-moz-focus-inner { /* remove extra button spacing for Mozilla Firefox */
+            border: 0;
+            padding: 0;
+            z-index: 20;
+        }
+
+        #clicktarget {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        svg {
+            display: block;
+        }
+
+        .with-3d-shadow with-transitions, #test1, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 500px;
+            width: 80%;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<div id="search">
+    <form class="form-wrapper cf" action="amenity.html" method="GET">
+        <input type="text" placeholder="Search your house by id..." required name="listId" />
+        <button type="submit" id="myButton">search</button>
+        <a href="listings.csv" style="alignment: center">Don't know your id?</a>
+    </form>
+</div>
+<div id="map"></div>
+<script>
+
+//    document.getElementById("myButton").onclick = function () {
+//        var searchKeyword = document.getElementById("funny").textContent;
+//    };
+
+
+    function initMap() {
+        // Styles a map in night mode.
+        var map = new google.maps.Map(document.getElementById('map'), {
+            center: {lat: 40.730610, lng: -73.935239}, //31.2231338,120.9162975
+            zoom: 11,
+            styles: [
+                {elementType: 'geometry', stylers: [{color: '#242f3e'}]},
+                {elementType: 'labels.text.stroke', stylers: [{color: '#242f3e'}]},
+                {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+                {
+                    featureType: 'administrative.locality',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#d59563'}]
+                },
+                {
+                    featureType: 'poi',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#d59563'}]
+                },
+                {
+                    featureType: 'poi.park',
+                    elementType: 'geometry',
+                    stylers: [{color: '#263c3f'}]
+                },
+                {
+                    featureType: 'poi.park',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#6b9a76'}]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'geometry',
+                    stylers: [{color: '#38414e'}]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'geometry.stroke',
+                    stylers: [{color: '#212a37'}]
+                },
+                {
+                    featureType: 'road',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#9ca5b3'}]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'geometry',
+                    stylers: [{color: '#746855'}]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'geometry.stroke',
+                    stylers: [{color: '#1f2835'}]
+                },
+                {
+                    featureType: 'road.highway',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#f3d19c'}]
+                },
+                {
+                    featureType: 'transit',
+                    elementType: 'geometry',
+                    stylers: [{color: '#2f3948'}]
+                },
+                {
+                    featureType: 'transit.station',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#d59563'}]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'geometry',
+                    stylers: [{color: '#17263c'}]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'labels.text.fill',
+                    stylers: [{color: '#515c6d'}]
+                },
+                {
+                    featureType: 'water',
+                    elementType: 'labels.text.stroke',
+                    stylers: [{color: '#17263c'}]
+                }
+            ]
+        });
+        google.maps.event.addListener(map, 'click', function () {
+            infowindow.close();
+        });
+        var bikeLayer = new google.maps.Data();
+        bikeLayer.loadGeoJson('converted.geojson');
+        bikeLayer.setStyle({
+            icon: 'smalldot.png'
+        });
+        //metroLayer.setMap(map);
+        bikeLayer.setMap(map);
+
+        var infowindow = new google.maps.InfoWindow();
+
+
+        bikeLayer.addListener('click', function (e) {
+            var list_id = e.feature.getProperty("name");
+            var price = e.feature.getProperty("price");
+            var income = e.feature.getProperty("income");
+            var rank = e.feature.getProperty("ranking");
+            var id = e.feature.getProperty("id");
+
+
+            var contentString = '<div id = "iw-container" style = background:#ffe5e6>' +
+                '<div id = "iw-title" style = background:#fd5c63 height: 15%>' +
+                'List Id:' + id + '<br>'+
+                'Name: ' + list_id + '</strong>'+'</div>' +
+                '</br> Income last year: ' + income + '<br> Ranking: ' + rank + '<br>' +
+                //"<form id= 'button' action='amenity.html' method='GET'>"+
+                "<div id='clicktarget'>"+ 'Compare with ten neighbours have higher income than you!'+ "</div>"+
+                //"</form>"+
+                '</div>';
+            infowindow.setContent(contentString);
+            infowindow.setPosition(e.latLng);
+            infowindow.open(map, this);
+
+            document.getElementById("clicktarget").onclick = function () {
+                window.location.href='amenity.html'+'?listId='+id;
+            }
+
+
+        });
+    }
+
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBfkY_bnswOais5YpxfyFx9j6kqoZUB-Us&callback=initMap"
+        async defer></script>
+
+<div class='with-3d-shadow with-transitions' id="overall_scatter">
+
+    <div id="test1" class="chartWrap">
+        <svg></svg>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link href="nv.d3.min.css" rel="stylesheet" type="text/css">
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="nv.d3.min.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Alegreya" rel="stylesheet">
+
+    <style>
+        text {
+            font: 12px sans-serif;
+        }
+        svg {
+            display: block;
+        }
+        html, body, #test1, svg {
+            margin: 10px;
+            padding: 10px;
+            height: 90%;
+            width: 90%;
+        }
+        #price_scatter{
+            font-family: 'Alegreya', serif;
+            font-size: 20px;
+        }
+
+        #heat{
+            font-family: 'Alegreya', serif;
+            font-size: 20px;
+        }
+        /* Form submit button */
+        .form-wrapper button {
+            overflow: visible;
+            position: relative;
+            float: right;
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+            height: 40px;
+            width: 110px;
+            font: bold 15px/40px 'lucida sans', 'trebuchet MS', 'Tahoma';
+            color: #fff;
+            text-transform: uppercase;
+            background: #d83c3c;
+            border-radius: 0 3px 3px 0;
+            text-shadow: 0 -1px 0 rgba(0, 0 ,0, .3);
+            z-index: 20;
+        }
+        .form-wrapper button:hover{
+            background: #e54040;
+            z-index: 20;
+        }
+        .form-wrapper button:active,
+        .form-wrapper button:focus{
+            background: #c42f2f;
+            outline: 0;
+            z-index: 20;
+        }
+        .form-wrapper button:before { /* left arrow */
+            content: '';
+            position: absolute;
+            border-width: 8px 8px 8px 0;
+            border-style: solid solid solid none;
+            border-color: transparent #d83c3c transparent;
+            top: 12px;
+            left: -6px;
+            z-index: 20;
+        }
+        .form-wrapper button:hover:before{
+            border-right-color: #e54040;
+            z-index: 20;
+        }
+        .form-wrapper button:focus:before,
+        .form-wrapper button:active:before{
+            border-right-color: #c42f2f;
+            z-index: 20;
+        }
+        .form-wrapper button::-moz-focus-inner { /* remove extra button spacing for Mozilla Firefox */
+            border: 0;
+            padding: 0;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class='with-3d-shadow with-transitions'>
+<div id="price_scatter">The relationship between pricing and income:</div>
+<div id="go_page"><form class="form-wrapper cf">
+    <button type="button" id="pagebtn">Go Home</button>
+</form>
+</div>
+<div id="test1" class="chartWrap">
+    <svg></svg>
+</div>
+
+<script>
+    document.getElementById("pagebtn").onclick = function () {
+        window.location.href = "home.html";
+    };
+    d3.csv("price_income_rate.csv",function(error, input){
+        if (error) throw error;
+
+
+        var dataset = [];
+        for (var j = 0; j < input.length; j++){
+            if (+input[j]['review_scores_rating'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '')!=0) {
+                dataset.push(+input[j]['review_scores_rating'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, ''));
+            }
+        }
+
+
+        var linearScale = d3.scale.linear().domain([0,100]).range([0,1]);
+        //console.log(linearScale(+input[1]['review_scores_rating'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '')));
+        var chart;
+        nv.addGraph(function() {
+            chart = nv.models.scatterChart()
+                .showDistX(true)
+                .showDistY(true)
+                .duration(300)
+                .color(d3.scale.category10().range());
+            chart.dispatch.on('renderEnd', function(){
+                //console.log('render complete');
+            });
+            chart.xAxis.tickFormat(d3.format('.02f'));
+            chart.yAxis.tickFormat(d3.format('.02f'));
+            d3.select('#test1 svg')
+                .datum(nv.log(randomData(10000)))
+                .call(chart);
+            nv.utils.windowResize(chart.update);
+            chart.dispatch.on('stateChange', function(e) { nv.log('New State:', JSON.stringify(e)); });
+            return chart;
+        });
+        function randomData(points) { //# groups,# points per group
+            var data = [],
+                shapes = ['circle'],
+                random = d3.random.normal();
+            data.push({
+                key:'Airbnb host',
+                values:[],
+                //slope: Math.random() - .01,
+                //intercept: Math.random() - .5
+            });
+            for (var i  = 0; i < points; i ++){
+                if ((+input[i]['price'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '')<2000)&&(+input[i]['income'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '')<50000)){
+                    if (+input[i]['review_scores_rating'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '')!=0){
+                        data[0].values.push({
+                            x:+input[i]['price'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, ''),
+                            y:+input[i]['income'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, ''),
+                            //size: linearScale(+input[i]['review_scores_rating'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '')),
+                            size:(Math.random()*0.001+0.999),
+                            shape: shapes[0]
+
+                        });
+                        //console.log(data[0].values);
+                        //console.log(linearScale(+input[i]['review_scores_rating'].replace(/[`~!@#$%^&*()_|+\-=?;:'",<>\{\}\[\]\\\/]/gi, '')));
+                    }
+                }
+            }
+            return data;
+        }
+    })
+
+</script>
+<div id="heat">The distribution of hosts' income:
+<img src="heatmap.png" style="height: auto" width="80%" alt="Heat Map">
+</div>
+
+</body>
+</html>
